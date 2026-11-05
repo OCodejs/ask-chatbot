@@ -6,6 +6,7 @@ export default {
     gemini: !!(process.env.LLM_API_KEY || process.env.GEMINI_API_KEY),
     qwen: !!process.env.QWEN_API_KEY,
     ohmaba: !!process.env.OHMABA_URL,
+    hunyuan: !!process.env.HUNYUAN_API_KEY,
     zsk: true
   }
 };
