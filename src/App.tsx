@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Header } from './components/Header';
 import { SidebarProjectTree } from './components/SidebarProjectTree';
 import { SidebarWatsonAnalysis } from './components/SidebarWatsonAnalysis';
@@ -437,6 +438,7 @@ export default function App() {
       
       {/* Vercel Web Analytics */}
       <Analytics />
+      <SpeedInsights />
     </div>
   );
 }
