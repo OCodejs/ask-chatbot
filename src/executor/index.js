@@ -3,10 +3,12 @@ export async function execute(plan, workers, prompt, options = {}) {
     throw new TypeError("Execution plan must be an array");
   }
 
-  const requestedLimit = Number(options.maxConcurrency ?? 4);
+  // Preserve the legacy workflow's sequential behavior unless concurrency is
+  // explicitly requested by an orchestrator such as Conductor.
+  const requestedLimit = Number(options.maxConcurrency ?? 1);
   const limit = Number.isFinite(requestedLimit)
     ? Math.max(1, Math.min(8, Math.floor(requestedLimit)))
-    : 4;
+    : 1;
   const result = {};
   let cursor = 0;
 
