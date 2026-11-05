@@ -95,6 +95,8 @@ DEFAULT_MODEL=gemini
 
 # Tencent Hunyuan TokenHub (optional)
 HUNYUAN_API_KEY=your_tokenhub_api_key
+# Explicitly opt in before exposing billable Hy4 calls through the public chat API
+HUNYUAN_ENABLE_PUBLIC_API=false
 HUNYUAN_BASE_URL=https://tokenhub-intl.tencentcloudmaas.com/v1
 HUNYUAN_MODEL=hy4
 
@@ -108,7 +110,7 @@ OHMABA_API_KEY=
 
 The Gemini runtime uses `LLM_API_KEY` first, then `GEMINI_API_KEY`. The default Gemini model is `gemini-2.5-flash`; set `GEMINI_MODEL` to override it.
 
-Hunyuan uses Tencent TokenHub's OpenAI-compatible Chat Completions API. The default model is `hy4`; set `HUNYUAN_MODEL` or `HUNYUAN_BASE_URL` only when using a different TokenHub region or compatible endpoint. The Hunyuan API key is read only by the backend.
+Hunyuan uses Tencent TokenHub's OpenAI-compatible Chat Completions API. The default model is `hy4`; set `HUNYUAN_MODEL` or `HUNYUAN_BASE_URL` only when using a different TokenHub region or compatible endpoint. The Hunyuan API key is read only by the backend. Direct public API access to Hy4 is disabled unless `HUNYUAN_ENABLE_PUBLIC_API=true`; enable it only after reviewing authentication, quotas, and cost exposure. Conductor includes Hy4 only when this opt-in is enabled.
 
 ### 3. Start the application
 
@@ -136,6 +138,7 @@ Vite prints the local development URL when it starts. Keep the API process runni
 | `LLM_API_KEY` | Optional preferred Gemini key name; takes precedence in the Gemini runtime |
 | `GEMINI_MODEL` | Optional Gemini model override |
 | `HUNYUAN_API_KEY` | Tencent TokenHub API key; backend only |
+| `HUNYUAN_ENABLE_PUBLIC_API` | Must be `true` to expose Hy4 through the public chat API; defaults to disabled |
 | `HUNYUAN_BASE_URL` | OpenAI-compatible TokenHub base URL; defaults to the Tencent international endpoint |
 | `HUNYUAN_MODEL` | Hunyuan model ID; defaults to `hy4` |
 | `AGENT_MAX_CONCURRENCY` | Maximum parallel Conductor workers, clamped to 1–8 |
