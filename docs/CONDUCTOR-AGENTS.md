@@ -5,7 +5,7 @@ Ask OCode.js exposes an opt-in `conductor` model route for coordinated software-
 ## Execution model
 
 - The planner creates four specialist tasks: review, security, performance, and architecture.
-- Configured provider adapters are assigned to tasks round-robin.
+- Configured remote provider adapters are assigned to tasks round-robin. The local canned `zsk` demo agent is excluded so Conductor cannot present placeholder replies as real specialist analysis.
 - The executor runs tasks concurrently with a bounded worker pool.
 - `AGENT_MAX_CONCURRENCY` controls the limit (default 4, clamped to 1–8).
 - A failed specialist is reported without discarding successful results from other specialists.
@@ -15,7 +15,7 @@ Ask OCode.js exposes an opt-in `conductor` model route for coordinated software-
 
 Set `DEFAULT_MODEL=conductor` to make it the default route, or send `model: "conductor"` to `POST /api/chat`.
 
-Only providers with their required server-side credentials/configuration are considered enabled. Provider keys must remain in Vercel Environment Variables or another server-side secret store.
+Only remote providers with their required server-side credentials/configuration are considered enabled. If none are configured, Conductor returns a setup message instead of fabricating specialist results. Provider keys must remain in Vercel Environment Variables or another server-side secret store.
 
 ## Safety boundary
 
