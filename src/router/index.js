@@ -31,8 +31,11 @@ export async function router(prompt, provider) {
   if (targetProvider === "conductor") {
     try {
       const configuredProviders = Object.fromEntries(
-        Object.entries(providers).filter(([name]) => models.providers[name])
+        Object.entries(providers).filter(([name]) => name !== "zsk" && models.providers[name])
       );
+      if (!Object.keys(configuredProviders).length) {
+        return "Conductor is not configured yet. Add a server-side provider API key in Vercel Environment Variables; for Hy4, also set HUNYUAN_ENABLE_PUBLIC_API=true after reviewing access and usage limits.";
+      }
       const configuredLimit = Number.parseInt(process.env.AGENT_MAX_CONCURRENCY || "4", 10);
       const response = await runConductor(prompt, {
         providers: configuredProviders,
