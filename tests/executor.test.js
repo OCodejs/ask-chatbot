@@ -29,6 +29,26 @@ describe("parallel executor", () => {
     });
   });
 
+  it("keeps legacy execution sequential when no concurrency is requested", async () => {
+    let active = 0;
+    let peak = 0;
+    const worker = async () => {
+      active += 1;
+      peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active -= 1;
+      return "done";
+    };
+
+    await execute(
+      [{ agent: "one" }, { agent: "two" }],
+      { one: worker, two: worker },
+      "inspect"
+    );
+
+    expect(peak).toBe(1);
+  });
+
   it("records a failed worker and continues the remaining plan", async () => {
     const plan = [{ agent: "review" }, { agent: "security" }];
     const result = await execute(plan, {
