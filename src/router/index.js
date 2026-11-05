@@ -50,6 +50,10 @@ export async function router(prompt, provider) {
     }
   }
 
+  if (targetProvider === "hunyuan" && !models.providers.hunyuan) {
+    return "Hunyuan is disabled. Configure HUNYUAN_API_KEY and explicitly set HUNYUAN_ENABLE_PUBLIC_API=true after reviewing API access and usage limits.";
+  }
+
   const providerFn = providers[targetProvider];
   if (!providerFn) {
     throw new Error(`Unknown provider: ${targetProvider}`);
