@@ -1,5 +1,6 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
+import {Analytics} from '@vercel/analytics/react';
 import App from './App.tsx';
 import {AppErrorBoundary} from './components/AppErrorBoundary';
 import './index.css';
@@ -14,6 +15,7 @@ createRoot(rootElement).render(
   <StrictMode>
     <AppErrorBoundary>
       <App />
+      <Analytics />
     </AppErrorBoundary>
   </StrictMode>,
 );
