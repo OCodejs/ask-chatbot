@@ -194,6 +194,15 @@ The repository includes a `vercel.json` configuration for the static frontend an
 
 Do not put secrets in `vercel.json`, frontend variables, README examples, or committed source files. Never run a production deployment until the preview has been checked and explicitly approved.
 
+### Optional API container
+
+The repository includes a multi-stage `Dockerfile` for the Express API and CI security image scans. It builds the frontend as a validation step, installs production dependencies, runs as the non-root `node` user, and exposes port `3000`. This container is optional and does not replace the Vercel deployment configuration.
+
+```bash
+docker build -t ask-ocodejs-api .
+docker run --rm -p 3000:3000 --env-file .env ask-ocodejs-api
+```
+
 ## Project layout
 
 ```text
