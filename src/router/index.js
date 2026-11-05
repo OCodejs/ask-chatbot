@@ -1,13 +1,14 @@
 import { bus } from "../events/bus.js";
 import models from "../config/models.js";
 
-import { runAll } from "../orchestrator/index.js";
+import { runAll, runConductor } from "../orchestrator/index.js";
 
 import { openaiProvider } from "../providers/openai.js";
 import { claudeProvider } from "../providers/claude.js";
 import { geminiProvider } from "../providers/gemini.js";
 import { qwenProvider } from "../providers/qwen.js";
 import { ohmabaProvider } from "../providers/ohmaba.js";
+import { hunyuanProvider } from "../providers/hunyuan.js";
 import { zskProvider } from "../providers/zsk.js";
 
 const providers = {
@@ -16,6 +17,7 @@ const providers = {
   gemini: geminiProvider,
   qwen: qwenProvider,
   ohmaba: ohmabaProvider,
+  hunyuan: hunyuanProvider,
   zsk: zskProvider
 };
 
@@ -24,6 +26,28 @@ export async function router(prompt, provider) {
 
   if (targetProvider === "all") {
     return await runAll(prompt);
+  }
+
+  if (targetProvider === "conductor") {
+    try {
+      const configuredProviders = Object.fromEntries(
+        Object.entries(providers).filter(([name]) => models.providers[name])
+      );
+      const configuredLimit = Number.parseInt(process.env.AGENT_MAX_CONCURRENCY || "4", 10);
+      const response = await runConductor(prompt, {
+        providers: configuredProviders,
+        maxConcurrency: Number.isFinite(configuredLimit) ? configuredLimit : 4
+      });
+
+      bus.emit("ai", {
+        model: targetProvider,
+        response
+      });
+      return response;
+    } catch (error) {
+      console.error("Conductor orchestration failed:", error);
+      return "Conductor orchestration is currently unavailable. Check the configured AI providers and try again.";
+    }
   }
 
   const providerFn = providers[targetProvider];
@@ -42,6 +66,6 @@ export async function router(prompt, provider) {
     return result;
   } catch (error) {
     console.error(`Provider ${targetProvider} failed:`, error);
-    return `Provider ${targetProvider} is currently unavailable. Please try another provider.`;
+    return `Provider ${targetProvider} is currently unavailable. Please try another provider or configure its server-side credentials.`;
   }
 }
