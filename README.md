@@ -46,7 +46,7 @@ The workspace is evolving toward a prompt-first full-stack builder. The current 
 - **Chat streaming** — the Gemini chat endpoint can stream incremental response events using Server-Sent Events (SSE).
 - **Provider-ready architecture** — routing includes OpenAI, Claude, Gemini, Qwen, Hunyuan Hy4, OHMABA, and the local `zsk` provider; availability depends on each provider's implementation and server-side configuration.
 - **Hunyuan Hy4** — optional OpenAI-compatible Tencent TokenHub adapter, configured with a server-side API key.
-- **Conductor mode** — dispatches review, security, performance, and architecture tasks concurrently across configured providers, with bounded concurrency and partial-failure reporting.
+- **Conductor mode** — dispatches review, security, performance, and architecture tasks concurrently across configured providers, with bounded concurrency and partial-failure reporting. The product UI continues to display only **Agents**; its default route uses Conductor.
 - **HTTP chat API** — accepts chat prompts and can return either a JSON response or a streaming response.
 - **Modern web stack** — React 18, Vite, and Node.js/Express.
 - **Self-hosting options** — run the web client and API locally, or configure the repository for a supported hosting environment.
