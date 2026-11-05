@@ -1,5 +1,7 @@
 import { workflow } from "../workflow/index.js";
 
-export async function runAll(prompt){
-return await workflow(prompt);
+export { runConductor } from "./conductor.js";
+
+export async function runAll(prompt) {
+  return await workflow(prompt);
 }

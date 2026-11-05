@@ -1,13 +1,46 @@
-export async function execute(plan,workers,prompt){
+export async function execute(plan, workers, prompt, options = {}) {
+  if (!Array.isArray(plan)) {
+    throw new TypeError("Execution plan must be an array");
+  }
 
-const result={};
+  // Preserve the legacy workflow's sequential behavior unless concurrency is
+  // explicitly requested by an orchestrator such as Conductor.
+  const requestedLimit = Number(options.maxConcurrency ?? 1);
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.max(1, Math.min(8, Math.floor(requestedLimit)))
+    : 1;
+  const result = {};
+  let cursor = 0;
 
-for(const task of plan){
+  async function drainQueue() {
+    while (cursor < plan.length) {
+      const task = plan[cursor++];
+      if (!task || typeof task.agent !== "string") continue;
 
-result[task.agent]=await workers[task.agent](prompt);
+      if (options.signal?.aborted) {
+        result[task.agent] = "Agent cancelled before execution.";
+        continue;
+      }
 
-}
+      const worker = workers?.[task.agent];
+      if (typeof worker !== "function") {
+        result[task.agent] = `Agent unavailable: ${task.agent}`;
+        continue;
+      }
 
-return result;
+      try {
+        result[task.agent] = await worker(prompt, {
+          task,
+          signal: options.signal
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        result[task.agent] = `Agent failed: ${message}`;
+      }
+    }
+  }
 
+  const workerCount = Math.min(limit, plan.length);
+  await Promise.all(Array.from({ length: workerCount }, () => drainQueue()));
+  return result;
 }

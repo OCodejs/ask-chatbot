@@ -255,7 +255,8 @@ export default function App() {
     setSessions(prev => [newSession, ...prev]);
   };
 
-  const [selectedModel, setSelectedModel] = useState<'zsk' | 'ohmaba' | 'openai' | 'gemini' | 'qwen' | 'claude'>('zsk');
+  // Keep the product-facing label as "Agents"; the backend routes to Conductor.
+  const [selectedModel, setSelectedModel] = useState<'zsk' | 'ohmaba' | 'openai' | 'gemini' | 'qwen' | 'claude' | 'hunyuan' | 'conductor'>('conductor');
 
   return (
     <div className="flex flex-col h-screen w-screen bg-black text-white font-sans overflow-hidden">
@@ -435,7 +436,7 @@ export default function App() {
         onClose={() => setActiveFile(null)}
         onSaveFile={handleSaveFile}
       />
-      
+
       {/* Vercel Web Analytics */}
       <Analytics />
       <SpeedInsights />

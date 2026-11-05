@@ -1,4 +1,3 @@
-
 <p align="center">
   <img src="https://raw.githubusercontent.com/zskbot/ask-ocodejs/main/assets/app-icon-light-mode.png" width="112" alt="Ask OCode.js logo">
 </p>
@@ -45,11 +44,13 @@ The workspace is evolving toward a prompt-first full-stack builder. The current 
 ## Highlights
 
 - **Chat streaming** — the Gemini chat endpoint can stream incremental response events using Server-Sent Events (SSE).
-- **Provider-ready architecture** — routing includes OpenAI, Claude, Gemini, Qwen, OHMABA, and the local `zsk` provider; availability depends on each provider's implementation and configuration.
+- **Provider-ready architecture** — routing includes OpenAI, Claude, Gemini, Qwen, Hunyuan Hy4, OHMABA, and the local `zsk` provider; availability depends on each provider's implementation and server-side configuration.
+- **Hunyuan Hy4** — optional OpenAI-compatible Tencent TokenHub adapter, configured with a server-side API key.
+- **Conductor mode** — dispatches review, security, performance, and architecture tasks concurrently across configured providers, with bounded concurrency and partial-failure reporting. The product UI continues to display only **Agents**; its default route uses Conductor.
 - **HTTP chat API** — accepts chat prompts and can return either a JSON response or a streaming response.
 - **Modern web stack** — React 18, Vite, and Node.js/Express.
 - **Self-hosting options** — run the web client and API locally, or configure the repository for a supported hosting environment.
-- **Configurable model selection** — environment variables and request parameters determine which model/provider is used.
+- **Configurable model selection** — environment variables and request parameters determine which provider/model is used.
 
 ## Technology
 
@@ -57,8 +58,9 @@ The workspace is evolving toward a prompt-first full-stack builder. The current 
 | --- | --- |
 | Web client | React, Vite, TypeScript |
 | API server | Node.js, Express |
-| AI integration | Google GenAI SDK and provider adapters |
+| AI integration | Google GenAI SDK, OpenAI-compatible SDK, provider adapters |
 | Realtime / streaming | Server-Sent Events (SSE), Socket.IO/WebSocket components |
+| Agent orchestration | Specialist task planner, bounded parallel executor, Conductor report |
 | Testing and quality | Vitest, ESLint, Prettier |
 | Deployment configuration | Vercel configuration included |
 
@@ -88,8 +90,18 @@ GEMINI_API_KEY=your_gemini_api_key
 # Optional alias accepted by the runtime
 LLM_API_KEY=
 
-# Default provider/model alias
+# Default provider/model alias: gemini, hunyuan, conductor, or another configured provider
 DEFAULT_MODEL=gemini
+
+# Tencent Hunyuan TokenHub (optional)
+HUNYUAN_API_KEY=your_tokenhub_api_key
+# Explicitly opt in before exposing billable Hy4 calls through the public chat API
+HUNYUAN_ENABLE_PUBLIC_API=false
+HUNYUAN_BASE_URL=https://tokenhub-intl.tencentcloudmaas.com/v1
+HUNYUAN_MODEL=hy4
+
+# Conductor parallel worker limit (1–8; default 4)
+AGENT_MAX_CONCURRENCY=4
 
 # Optional custom/self-hosted agent endpoint
 OHMABA_URL=
@@ -97,6 +109,8 @@ OHMABA_API_KEY=
 ```
 
 The Gemini runtime uses `LLM_API_KEY` first, then `GEMINI_API_KEY`. The default Gemini model is `gemini-2.5-flash`; set `GEMINI_MODEL` to override it.
+
+Hunyuan uses Tencent TokenHub's OpenAI-compatible Chat Completions API. The default model is `hy4`; set `HUNYUAN_MODEL` or `HUNYUAN_BASE_URL` only when using a different TokenHub region or compatible endpoint. The Hunyuan API key is read only by the backend. Direct public API access to Hy4 is disabled unless `HUNYUAN_ENABLE_PUBLIC_API=true`; enable it only after reviewing authentication, quotas, and cost exposure. Conductor includes Hy4 only when this opt-in is enabled.
 
 ### 3. Start the application
 
@@ -121,9 +135,14 @@ Vite prints the local development URL when it starts. Keep the API process runni
 | Variable | Purpose |
 | --- | --- |
 | `GEMINI_API_KEY` | Gemini API key used by the Gemini runtime |
-| `LLM_API_KEY` | Optional preferred key name; takes precedence over `GEMINI_API_KEY` |
-| `GEMINI_MODEL` | Optional Gemini model override; defaults to `gemini-2.5-flash` |
-| `DEFAULT_MODEL` | Default provider/model alias used by API routing |
+| `LLM_API_KEY` | Optional preferred Gemini key name; takes precedence in the Gemini runtime |
+| `GEMINI_MODEL` | Optional Gemini model override |
+| `HUNYUAN_API_KEY` | Tencent TokenHub API key; backend only |
+| `HUNYUAN_ENABLE_PUBLIC_API` | Must be `true` to expose Hy4 through the public chat API; defaults to disabled |
+| `HUNYUAN_BASE_URL` | OpenAI-compatible TokenHub base URL; defaults to the Tencent international endpoint |
+| `HUNYUAN_MODEL` | Hunyuan model ID; defaults to `hy4` |
+| `AGENT_MAX_CONCURRENCY` | Maximum parallel Conductor workers, clamped to 1–8 |
+| `DEFAULT_MODEL` | Default provider alias, including `hunyuan` or `conductor` |
 | `OHMABA_URL` | Optional custom or self-hosted agent endpoint |
 | `OHMABA_API_KEY` | Optional bearer token for the custom endpoint |
 | `PORT` | API server port; defaults to `3000` |
@@ -134,13 +153,14 @@ Only configure the variables needed by your chosen provider. Do not commit `.env
 
 ### `POST /api/chat`
 
-The Vercel API handler accepts JSON with either `message` or `prompt`.
+The Vercel API handler accepts JSON with either `message` or `prompt`. The optional `model` field can select a configured provider, including `hunyuan` or `conductor`.
 
 **Request**
 
 ```json
 {
-  "message": "Explain what this project does",
+  "message": "Review this application architecture",
+  "model": "conductor",
   "stream": false
 }
 ```
@@ -151,26 +171,37 @@ The Vercel API handler accepts JSON with either `message` or `prompt`.
 {
   "success": true,
   "response": "…",
-  "model": "gemini-2.5-flash"
+  "model": "conductor"
 }
 ```
 
 Set `"stream": true` or send an `Accept: text/event-stream` header to request SSE streaming for the Gemini path. Events include `delta` for incremental text, `done` when complete, and `error` if streaming fails.
 
+Conductor mode runs the review, security, performance, and architecture specialists concurrently. It returns a Markdown report and does not edit files, execute shell commands, commit changes, or deploy. See [docs/CONDUCTOR-AGENTS.md](docs/CONDUCTOR-AGENTS.md).
+
 The API validates empty prompts and rejects messages longer than 12,000 characters. The Express server also exposes `GET /health` and chat routes under `/v1/chat`.
 
-> API behavior can differ by provider. Check the relevant provider implementation before relying on provider-specific streaming or response formats.
+> API behavior can differ by provider. Check the relevant provider implementation before relying on provider-specific streaming or response formats. The current Hunyuan adapter accepts text prompts; image/file payload support is not yet wired into the chat request schema.
 
 ## Deploying
 
 The repository includes a `vercel.json` configuration for the static frontend and API functions.
 
 1. Import `zskbot/ask-ocodejs` into your hosting provider.
-2. Configure the required environment variables in the provider's project settings.
+2. Configure the required provider environment variables in the provider's project settings.
 3. Run a preview/staging deployment first.
 4. Verify the chat API, provider credentials, and streaming behavior before promoting any release.
 
 Do not put secrets in `vercel.json`, frontend variables, README examples, or committed source files. Never run a production deployment until the preview has been checked and explicitly approved.
+
+### Optional API container
+
+The repository includes a multi-stage `Dockerfile` for the Express API and CI security image scans. It builds the frontend as a validation step, installs production dependencies, runs as the non-root `node` user, and exposes port `3000`. This container is optional and does not replace the Vercel deployment configuration.
+
+```bash
+docker build -t ask-ocodejs-api .
+docker run --rm -p 3000:3000 --env-file .env ask-ocodejs-api
+```
 
 ## Project layout
 
@@ -180,12 +211,15 @@ Ask OCode.js/
 ├── src/
 │   ├── agent/            # Agent runtime and system prompt
 │   ├── config/           # Provider/model configuration
-│   ├── providers/        # Provider adapters
-│   ├── router/            # Provider selection and orchestration
-│   ├── routes/            # Express API routes
-│   ├── server/            # Express server entry point
+│   ├── providers/        # Provider adapters, including Hunyuan
+│   ├── router/           # Provider selection and orchestration routing
+│   ├── orchestrator/     # Conductor specialist coordination
+│   ├── executor/         # Bounded parallel task executor
+│   ├── workflow/         # Existing full workflow
 │   ├── tools/             # Agent tools
 │   └── ...                # UI, shared utilities, and other modules
+├── tests/                # Provider and orchestration tests
+├── docs/                 # Product and agent architecture notes
 ├── assets/               # README and project assets
 ├── wiki/                 # Project notes and wiki
 ├── index.html
@@ -209,6 +243,7 @@ These commands are available in `package.json`. Run them after making changes an
 - Keep API keys and tokens in local environment files or hosting-provider secret settings.
 - Rotate a credential immediately if it has been exposed in a commit, log, screenshot, or public issue.
 - Validate and review agent tools carefully before enabling them in an environment with access to important files or services.
+- Conductor's current specialist workers perform analysis only; they do not have shell or repository write access.
 - Do not assume a provider is configured merely because its name appears in the routing layer.
 
 ## Contributing
