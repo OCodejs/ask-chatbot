@@ -1,12 +1,6 @@
 name: NeuraLegion
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-  schedule:
-    - cron: "34 12 * * 3"
   workflow_dispatch:
 
 permissions:
@@ -29,7 +23,6 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "::warning::Nexploit scan skipped: configure NEURALEGION_TOKEN and NEXPLOIT_TARGET_URL for a target you own or are authorized to test."
           fi
-
       - name: Start Nexploit Scan
         if: steps.readiness.outputs.ready == 'true'
         id: start
@@ -41,7 +34,6 @@ jobs:
             [ "crawler" ]
           crawler_urls: |
             [ "${{ vars.NEXPLOIT_TARGET_URL }}" ]
-
       - name: Print scan URL
         if: steps.readiness.outputs.ready == 'true'
         run: echo "Nexploit scan started: ${{ steps.start.outputs.url }}"
