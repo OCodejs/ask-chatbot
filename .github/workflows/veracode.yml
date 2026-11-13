@@ -1,59 +1,75 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# This workflow will initiate a Veracode Static Analysis Pipeline scan, return a results.json and convert to SARIF for upload as a code scanning alert
-
 name: Veracode Static Analysis Pipeline Scan
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
-    - cron: '30 11 * * 6'
+    - cron: "30 11 * * 6"
+  workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 permissions:
   contents: read
 
 jobs:
-  # This workflow contains a job to build and submit pipeline scan, you will need to customize the build process accordingly and make sure the artifact you build is used as the file input to the pipeline scan file parameter
   build-and-pipeline-scan:
-    # The type of runner that the job will run on
     permissions:
-      contents: read # for actions/checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+      contents: read
+      security-events: write
+      actions: read
     runs-on: ubuntu-latest
     steps:
+      - name: Check Veracode credentials
+        id: credentials
+        env:
+          VERACODE_API_ID: ${{ secrets.VERACODE_API_ID }}
+          VERACODE_API_KEY: ${{ secrets.VERACODE_API_KEY }}
+        run: |
+          if [ -n "$VERACODE_API_ID" ] && [ -n "$VERACODE_API_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Veracode scan skipped: configure VERACODE_API_ID and VERACODE_API_KEY repository secrets."
+          fi
 
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it and copies all sources into ZIP file for submitting for analysis. Replace this section with your applications build steps
-    - uses: actions/checkout@v4
-      with:
-        repository: ''
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        if: steps.credentials.outputs.configured == 'true'
 
-    - run: zip -r veracode-scan-target.zip ./
+      - name: Package source
+        if: steps.credentials.outputs.configured == 'true'
+        run: zip -r veracode-scan-target.zip ./
 
-    # download the Veracode Static Analysis Pipeline scan jar
-    - run: curl --silent --show-error --fail -O https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
-    - run: unzip -o pipeline-scan-LATEST.zip
+      - name: Download Veracode Pipeline Scan
+        if: steps.credentials.outputs.configured == 'true'
+        run: |
+          curl --silent --show-error --fail -O https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
+          unzip -o pipeline-scan-LATEST.zip
 
-    - uses: actions/setup-java@v4
-      with:
-        java-version: 8
-        distribution: 'temurin'
-    - run: java -jar pipeline-scan.jar --veracode_api_id "${{secrets.VERACODE_API_ID}}" --veracode_api_key "${{secrets.VERACODE_API_KEY}}" --fail_on_severity="Very High, High" --file veracode-scan-target.zip
-      continue-on-error: true
-    - name: Convert pipeline scan output to SARIF format
-      id: convert
-      uses: veracode/veracode-pipeline-scan-results-to-sarif@ff08ae5b45d5384cb4679932f184c013d34da9be
-      with:
-        pipeline-results-json: results.json
-    - uses: github/codeql-action/upload-sarif@v3
-      with:
-        # Path to SARIF file relative to the root of the repository
-        sarif_file: veracode-results.sarif
+      - name: Set up Java
+        if: steps.credentials.outputs.configured == 'true'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Run Veracode Pipeline Scan
+        if: steps.credentials.outputs.configured == 'true'
+        run: java -jar pipeline-scan.jar --veracode_api_id "$VERACODE_API_ID" --veracode_api_key "$VERACODE_API_KEY" --fail_on_severity="Very High, High" --file veracode-scan-target.zip
+        env:
+          VERACODE_API_ID: ${{ secrets.VERACODE_API_ID }}
+          VERACODE_API_KEY: ${{ secrets.VERACODE_API_KEY }}
+        continue-on-error: true
+
+      - name: Convert pipeline scan output to SARIF
+        if: steps.credentials.outputs.configured == 'true' && hashFiles('results.json') != ''
+        uses: veracode/veracode-pipeline-scan-results-to-sarif@ff08ae5b45d5384cb4679932f184c013d34da9be
+        with:
+          pipeline-results-json: results.json
+          output-results-sarif: veracode-results.sarif
+
+      - name: Upload Veracode results
+        if: steps.credentials.outputs.configured == 'true' && hashFiles('veracode-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
+        with:
+          sarif_file: veracode-results.sarif
