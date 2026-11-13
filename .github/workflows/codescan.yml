@@ -1,45 +1,16 @@
 name: CodeScan
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-  schedule:
-    - cron: "35 21 * * 2"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   CodeScan:
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - name: Set up Java
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: "17"
-      - name: Cache files
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: ~/.sonar
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-      - name: Run Analysis
-        uses: codescan-io/codescan-scanner-action@5b2e8c5683ef6a5adc8fa3b7950bb07debccce12
-        with:
-          login: ${{ secrets.CODESCAN_AUTH_TOKEN }}
-          organization: ${{ secrets.CODESCAN_ORGANIZATION_KEY }}
-          projectKey: ${{ secrets.CODESCAN_PROJECT_KEY }}
-      - name: Upload SARIF file
-        if: always() && hashFiles('codescan.sarif') != ''
-        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
-        with:
-          sarif_file: codescan.sarif
+      - name: Explain CodeScan scanner compatibility block
+        run: |
+          echo "::warning::CodeScan automation is paused. The current CodeScan GitHub Action bundles SonarScanner CLI 4.4.0, which starts Java 11; the current CodeScan server scanner engine requires Java 17 (class-file version 61). The workflow will be re-enabled after the upstream action ships a Java 17-compatible scanner."
+          echo "Alternative security coverage remains active through CodeQL, OSSAR, Trivy, Codacy, OSV-Scanner, MobSF and PHPMD."
