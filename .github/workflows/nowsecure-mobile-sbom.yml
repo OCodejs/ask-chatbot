@@ -16,6 +16,9 @@ jobs:
   nowsecure:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
       - name: Check mobile project and NowSecure credentials
         id: readiness
         env:
@@ -28,10 +31,6 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "::warning::NowSecure SBOM skipped: this repository has no Gradle wrapper or the NS_TOKEN/NOWSECURE_GROUP_ID settings are missing."
           fi
-
-      - name: Checkout code
-        if: steps.readiness.outputs.ready == 'true'
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Build Android application
         if: steps.readiness.outputs.ready == 'true'
