@@ -21,15 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
-      - name: Setup Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.11"
-
       - name: Run mobsfscan
-        uses: MobSF/mobsfscan@a60d10a83af68e23e0b30611c6515da604f06f65
+        uses: MobSF/mobsfscan@18cce72c077cbac1925439c3158363fd3bb361aa # 1.1.0
         with:
-          args: . --sarif --output results.sarif || true
+          args: . --sarif --output results.sarif --no-fail
 
       - name: Upload mobsfscan report
         if: always() && hashFiles('results.sarif') != ''
