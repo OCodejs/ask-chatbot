@@ -32,7 +32,19 @@ jobs:
       - name: Run Microsoft Security DevOps
         uses: microsoft/security-devops-action@v1.6.0
         id: msdo
+      - name: Verify Microsoft Security DevOps report
+        if: success()
+        env:
+          SARIF_FILE: ${{ steps.msdo.outputs.sarifFile }}
+        run: |
+          if (-not $env:SARIF_FILE -or -not (Test-Path -LiteralPath $env:SARIF_FILE -PathType Leaf)) {
+            throw "Microsoft Security DevOps did not produce a SARIF report."
+          }
       - name: Upload results to Security tab
+        if: >-
+          always() &&
+          steps.msdo.outputs.sarifFile != '' &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
         with:
           sarif_file: ${{ steps.msdo.outputs.sarifFile }}
