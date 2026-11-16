@@ -1,11 +1,12 @@
 import os
+
 import gradio as gr
-from huggingface_hub import InferenceApi
+from huggingface_hub import InferenceClient
 
 MODEL_ID = "moonshotai/Kimi-K2.7-Code"
-API_TOKEN = os.environ.get("HF_TOKEN", None)
+API_TOKEN = os.environ.get("HF_TOKEN")
 
-inference = InferenceApi(repo_id=MODEL_ID, token=API_TOKEN, task="text-generation")
+inference = InferenceClient(model=MODEL_ID, token=API_TOKEN)
 
 EXAMPLES = [
     "Write a Python function that reverses a string.",
@@ -20,22 +21,16 @@ def generate_code(prompt: str, max_tokens: int = 256, temperature: float = 0.2):
         return "Please enter a prompt to generate code."
 
     try:
-        output = inference(
+        output = inference.text_generation(
             prompt,
-            parameters={
-                "max_new_tokens": max_tokens,
-                "temperature": temperature,
-                "top_p": 0.95,
-                "repetition_penalty": 1.05,
-            },
+            max_new_tokens=int(max_tokens),
+            temperature=float(temperature),
+            top_p=0.95,
+            repetition_penalty=1.05,
         )
-
-        if isinstance(output, list) and len(output) > 0 and "generated_text" in output[0]:
-            return output[0]["generated_text"].strip()
         if isinstance(output, str):
             return output.strip()
-
-        return "No output from the model."
+        return str(output).strip() if output is not None else "No output from the model."
     except Exception as exc:
         return f"Error: {exc}"
 
@@ -45,8 +40,8 @@ with demo:
     gr.Markdown(
         "# Kimi K2.7 Code Demo\n"
         "Generate code snippets with the `moonshotai/Kimi-K2.7-Code` model.\n"
-        "\n" 
-        "Enter a task request and click **Generate** to see code output." 
+        "\n"
+        "Enter a task request and click **Generate** to see code output."
     )
     with gr.Row():
         with gr.Column():

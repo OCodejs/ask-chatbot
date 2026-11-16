@@ -1,2 +1,8 @@
-gradio>=3.60
+gradio>=6.32.0,<7
 huggingface-hub>=1.0.0
+
+# Security floors for the HTTP transport dependencies flagged by OSV.
+# httpx2 2.12.0+ fixes decompression amplification and earlier advisories.
+# httpcore2 2.12.0+ includes the corresponding patched transport releases.
+httpx2>=2.12.0,<3
+httpcore2>=2.12.0,<3
