@@ -1,8 +1,8 @@
 gradio>=6.32.0,<7
 huggingface-hub>=1.0.0
 
-# Security floors for the HTTP transport dependencies flagged by OSV.
-# httpx2 2.12.0+ fixes decompression amplification and earlier advisories.
-# httpcore2 2.12.0+ includes the corresponding patched transport releases.
-httpx2>=2.12.0,<3
-httpcore2>=2.12.0,<3
+# Exact patched releases that retain Python 3.10 compatibility.
+# PyPI metadata confirms both 2.14.0 packages support Python >=3.10;
+# OSV's reported fixes for these advisories are available by 2.12.0.
+httpx2==2.14.0
+httpcore2==2.14.0
