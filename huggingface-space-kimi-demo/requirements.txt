@@ -1,7 +1,8 @@
 gradio>=6.32.0,<7
 huggingface-hub>=1.0.0
 
-# Pin the patched transport releases explicitly so OSV resolves the fixed versions.
-# Both 2.16.2 releases are available from PyPI with verified publishing provenance.
-httpx2==2.16.2
-httpcore2==2.16.2
+# Exact patched releases that retain Python 3.10 compatibility.
+# PyPI metadata confirms both 2.14.0 packages support Python >=3.10;
+# OSV's reported fixes for these advisories are available by 2.12.0.
+httpx2==2.14.0
+httpcore2==2.14.0
